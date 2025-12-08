@@ -11,33 +11,14 @@ A modern, cross-platform email client built with Wails, React, and TypeScript.
 - 🔒 Secure email handling
 - 📱 Cross-platform support (Windows, macOS, Linux)
 
-## � For Users
+## ✨ For Users
 
 ### Download and Install
 
-1. **Download** the latest release for your operating system from our [Releases page](https://github.com/yourusername/tempu-mail/releases)
+Currently, the application build only for windowds--
+[Download](https://github.com/yourusername/tempu-mail/releases)
 
-   - Windows: `tempu-mail-windows-x64.exe`
-   - macOS: `tempu-mail-darwin-x64.dmg`
-   - Linux: `tempu-mail-linux-x64.AppImage`
-
-2. **Install**
-   - **Windows**: Double-click the downloaded `.exe` file
-   - **macOS**: Open the `.dmg` file and drag Tempu-Mail to Applications
-   - **Linux**: Make the AppImage executable and run it:
-     ```bash
-     chmod +x tempu-mail-linux-x64.AppImage
-     ./tempu-mail-linux-x64.AppImage
-     ```
-
-### First-Time Setup
-
-1. Launch Tempu-Mail
-2. Click "Add Account" to connect your email
-3. Enter your email address and password
-4. Follow the on-screen instructions to complete setup
-
-## �🚀 Getting Started (For Developers)
+## 🚀 Getting Started (For Developers)
 
 ### Prerequisites
 
