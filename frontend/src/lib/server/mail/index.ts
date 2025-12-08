@@ -1,0 +1,59 @@
+import axios from "axios";
+import type { ApiResponse } from "@/types/index";
+import { getDummyUser } from "../helper";
+
+export const CreateAccount = async () => {
+  const { data }: { data: ApiResponse["DomainsList"] } = await axios.get(
+    "https://api.mail.tm/domains"
+  );
+
+  const domain = data["hydra:member"][0].domain;
+
+  const user = getDummyUser();
+
+  const mail = user.username + "@" + domain;
+
+  const accountData = (await axios.post("https://api.mail.tm/accounts", {
+    address: mail,
+    password: user.password,
+  })) as { data: ApiResponse["AccountsCreate"] };
+
+  const tokenData = (await axios.post("https://api.mail.tm/token", {
+    address: accountData.data.address,
+    password: user.password,
+  })) as { data: ApiResponse["TokenCreate"] };
+
+  return {
+    token: tokenData.data.token,
+    mail,
+    pass: user.password,
+    user: user.username,
+  };
+};
+
+export const GetAllMails = async (token: string) => {
+  console.log("🚀 ~ GetAllMails Calling.........");
+  const { data }: { data: ApiResponse["MailList"] } = await axios.get(
+    "https://api.mail.tm/messages",
+    { headers: { Authorization: "Bearer " + token } }
+  );
+  const mails = data["hydra:member"];
+  return mails.slice(0, 10);
+};
+
+export const GetOneMail = async (token: string, id: string) => {
+  console.log("🚀 ~ GetOneMail Calling.........");
+  const { data }: { data: ApiResponse["OneMail"] } = await axios.get(
+    "https://api.mail.tm/messages/" + id,
+    { headers: { Authorization: "Bearer " + token } }
+  );
+  return data;
+};
+
+export const GetMeInfo = async (token: string) => {
+  const { data }: { data: ApiResponse["MeInfo"] } = await axios.get("https://api.mail.tm/me", {
+    headers: { Authorization: "Bearer " + token },
+  });
+  const mail = data.address;
+  return mail;
+};

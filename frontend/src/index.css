@@ -118,3 +118,73 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .hover-zoom {
+    @apply transition-all duration-300 hover:scale-[1.03];
+  }
+  .hover-zoom-lg {
+    @apply transition-all duration-300 hover:scale-110;
+  }
+}
+
+/* Sidebar base styling */
+.sidebar {
+  @apply bg-sidebar  text-sidebar-foreground border-r border-sidebar-border;
+}
+
+/* Larger spacing + layout */
+.sidebar-nav {
+  @apply flex flex-col gap-4 p-6;
+}
+
+.sidebar-item {
+  @apply flex items-center gap-4 px-4 py-3 rounded-xl text-lg font-medium transition-all;
+}
+
+.sidebar-item-hover {
+  @apply hover:bg-sidebar-accent hover:text-sidebar-accent-foreground;
+}
+
+.sidebar-item-active {
+  @apply bg-sidebar-primary text-sidebar-primary-foreground;
+}
+
+/* Larger icons */
+.sidebar-icon {
+  @apply h-7 w-7;
+}
+
+/* Thin scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+/* Hide the track */
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+/* Only the slider thumb */
+::-webkit-scrollbar-thumb {
+  background-color: oklch(0.57 0 0 / 0.6);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: oklch(0.57 0 0 / 0.9);
+}
+
+/* Hide arrows */
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0;
+  height: 0;
+}
+
+/* Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.57 0 0 / 0.6) transparent;
+}
