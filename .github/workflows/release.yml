@@ -7,15 +7,23 @@ on:
 
 jobs:
   build:
-    name: Build for ${{ matrix.os }}
+    name: Build for ${{ matrix.display }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        display: [linux, windows, macos]
+        include:
+          - os: ubuntu-latest
+            display: linux
+          - os: windows-latest
+            display: windows
+          - os: macos-latest
+            display: macos
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v4
@@ -25,7 +33,7 @@ jobs:
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v3/cmd/wails@latest
 
-      - name: Install Node (for frontend)
+      - name: Setup Node (frontend)
         uses: actions/setup-node@v4
         with:
           node-version: 18
@@ -33,37 +41,36 @@ jobs:
       - name: Build Wails App
         run: wails build -clean
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: wails-${{ matrix.os }}
-          path: build/bin/
+          name: wails-${{ matrix.display }}
+          path: build/bin/**
 
-  release:
+  create_release:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-
     steps:
-      - name: Download Linux Artifacts
-        uses: actions/download-artifact@v3
+      - name: Download linux artifact
+        uses: actions/download-artifact@v4
         with:
-          name: wails-ubuntu-latest
+          name: wails-linux
           path: artifacts/linux
 
-      - name: Download Windows Artifacts
-        uses: actions/download-artifact@v3
+      - name: Download windows artifact
+        uses: actions/download-artifact@v4
         with:
-          name: wails-windows-latest
+          name: wails-windows
           path: artifacts/windows
 
-      - name: Download macOS Artifacts
-        uses: actions/download-artifact@v3
+      - name: Download macos artifact
+        uses: actions/download-artifact@v4
         with:
-          name: wails-macos-latest
+          name: wails-macos
           path: artifacts/macos
 
-      - name: Create Release
+      - name: Create GitHub Release & upload files
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
