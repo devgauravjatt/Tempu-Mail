@@ -1,178 +1,160 @@
-# This is a basic workflow to help you get started with Actions
+# .github/workflows/build.yml
+name: Wails Build
 
-name: Release Build
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push events for tags
   push:
-    tags:
-      - 'v*'
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
+# Add permissions for release uploads
 permissions:
   contents: write
-  packages: write
+  
+env:
+  NODE_OPTIONS: "--max-old-space-size=4096"
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  linux:
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          - name: 'App'
+            platform: 'linux/amd64'
+            os: 'ubuntu-latest'
+          - name: 'App'
+            platform: 'windows/amd64'
+            os: 'windows-latest'
+          - name: 'App'
+            platform: 'darwin/universal'
+            os: 'macos-latest'
+    
+    runs-on: ${{ matrix.build.os }}
+    
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      # Cache Go dependencies
-      - name: Set up Go cache
-        uses: actions/cache@v3
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          go-version: '1.23'
+          check-latest: true
+          cache: true
 
-      # Cache npm dependencies
-      - name: Set up npm cache
-        uses: actions/cache@v3
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          path: |
-            frontend/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
+          version: 9
+          run_install: false
 
-      - uses: ./.github/actions/wails
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          build-name: editai
-          build-platform: linux/amd64
-          wails-version: "v2.9.2"
-          package: true
-          build: true
-          wails-build-webview2: "embed"
-          go-version: ^1.22
-      - name: Rename artifact
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: './frontend/pnpm-lock.yaml'
+
+      # Linux specific dependencies - Updated for Ubuntu 24.04+
+      - name: Install Linux dependencies
+        if: matrix.build.os == 'ubuntu-latest'
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          mv build/bin/editai "build/bin/editai-${VERSION}-linux-amd64"
-      - name: Upload Release Artifact
-        uses: softprops/action-gh-release@v1
-        with:
-          files: "build/bin/editai-*-linux-amd64"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
 
-  macos:
-    runs-on: macos-latest
-    steps:
-      # Checkout code
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      # Cache Go dependencies
-      - name: Set up Go cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/Library/Caches/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      # Cache npm dependencies
-      - name: Set up npm cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            frontend/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
-      - uses: ./.github/actions/wails
-        with:
-          build-name: editai
-          build-platform: darwin/universal
-          wails-version: "v2.9.2"
-          package: true
-          build: true
-          go-version: ^1.22
-      - name: Package macOS artifacts
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          cd build/bin
-          mv editai.app "editai-${VERSION}-mac.app"
-          zip -r "editai-${VERSION}-mac.app.zip" "editai-${VERSION}-mac.app"
-          mv editai.pkg "editai-${VERSION}-mac.pkg"
-      - name: Upload Release Artifacts
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            build/bin/editai-*-mac.app.zip
-            build/bin/editai-*-mac.pkg
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  windows:
-    runs-on: windows-latest
-    steps:
-      # Checkout code
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      # Cache Go dependencies
-      - name: Set up Go cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~\AppData\Local\go-build
-            ~\go\pkg\mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      # Cache npm dependencies
-      - name: Set up npm cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            frontend\node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
-      - uses: ./.github/actions/wails
-        with:
-          build-name: editai
-          build-platform: windows/amd64
-          wails-version: "v2.9.2"
-          package: true
-          build: true
-          nsis: true
-          wails-build-webview2: "embed"
-          go-version: ^1.22
-      - name: Rename artifacts
+      # Install frontend dependencies with pnpm
+      - name: Get pnpm store directory
         shell: bash
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: ./frontend
+
+      # Build frontend explicitly with pnpm
+      - name: Build frontend
+        run: pnpm run build
+        working-directory: ./frontend
+
+      # Install Wails
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      # Build the application with webkit2_41 tag for Linux
+      - name: Build Wails app (Linux)
+        if: matrix.build.os == 'ubuntu-latest'
+        run: wails build -clean -platform ${{ matrix.build.platform }} -tags webkit2_41 -skipbindings -s
+
+      # Build the application (macOS/Windows)
+      - name: Build Wails app (macOS/Windows)
+        if: matrix.build.os != 'ubuntu-latest'
+        run: wails build -clean -platform ${{ matrix.build.platform }} -skipbindings -s
+
+      # Upload artifacts - Linux
+      - name: Upload Linux artifact
+        if: matrix.build.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.build.name }}-linux-amd64
+          path: build/bin/*
+
+      # Upload artifacts - macOS
+      - name: Upload macOS artifact
+        if: matrix.build.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.build.name }}-darwin-universal
+          path: build/bin/*.app
+
+      # Upload artifacts - Windows
+      - name: Upload Windows artifact
+        if: matrix.build.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.build.name }}-windows-amd64
+          path: build/bin/*.exe
+
+      # Package artifacts for release
+      - name: Package Linux artifact
+        if: matrix.build.os == 'ubuntu-latest' && github.event_name == 'release'
+        run: |
           cd build/bin
-          mv editai "editai-${VERSION}-windows-amd64-portable.exe"
-          mv editai-installer.exe "editai-${VERSION}-windows-amd64-installer.exe"
-      - name: Upload Release Artifacts
-        uses: softprops/action-gh-release@v1
+          tar -czf ../../${{ matrix.build.name }}-linux-amd64.tar.gz *
+          
+      - name: Package Windows artifact
+        if: matrix.build.os == 'windows-latest' && github.event_name == 'release'
+        shell: pwsh
+        run: |
+          cd build/bin
+          Compress-Archive -Path * -DestinationPath ../../${{ matrix.build.name }}-windows-amd64.zip
+
+      - name: Package macOS artifact
+        if: matrix.build.os == 'macos-latest' && github.event_name == 'release'
+        run: |
+          cd build/bin
+          zip -r ../../${{ matrix.build.name }}-darwin-universal.zip *.app
+
+      # Upload to GitHub Release
+      - name: Upload Release Assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
         with:
           files: |
-            build/bin/editai-*-windows-amd64-portable.exe
-            build/bin/editai-*-windows-amd64-installer.exe
+            *.tar.gz
+            *.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
