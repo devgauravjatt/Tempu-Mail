@@ -1,5 +1,5 @@
 # .github/workflows/build.yml
-name: Build Wails App
+name: Wails Build
 
 on:
   push:
@@ -7,17 +7,32 @@ on:
   pull_request:
     branches: [ main ]
   release:
-    types: [ created ]
+    types: [ published ]
+
+env:
+  # Prevent OOM issues during build
+  NODE_OPTIONS: "--max-old-space-size=4096"
 
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.platform }}
+        build:
+          - name: 'App'
+            platform: 'linux/amd64'
+            os: 'ubuntu-latest'
+          - name: 'App'
+            platform: 'windows/amd64'
+            os: 'windows-latest'
+          - name: 'App'
+            platform: 'darwin/universal'
+            os: 'macos-latest'
+    
+    runs-on: ${{ matrix.build.os }}
     
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -26,22 +41,45 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
+          check-latest: true
+          cache: true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: './frontend/pnpm-lock.yaml'
 
       # Linux specific dependencies
       - name: Install Linux dependencies
-        if: runner.os == 'Linux'
+        if: matrix.build.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
 
-      # Install frontend dependencies
+      # Install frontend dependencies with pnpm
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Install frontend dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
         working-directory: ./frontend
 
       # Install Wails
@@ -50,36 +88,36 @@ jobs:
 
       # Build the application
       - name: Build Wails app
-        run: wails build
+        run: wails build -clean -platform ${{ matrix.build.platform }}
 
       # Upload artifacts - Linux
       - name: Upload Linux artifact
-        if: runner.os == 'Linux'
+        if: matrix.build.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: linux-build
+          name: ${{ matrix.build.name }}-linux-amd64
           path: build/bin/*
 
       # Upload artifacts - macOS
       - name: Upload macOS artifact
-        if: runner.os == 'macOS'
+        if: matrix.build.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: macos-build
+          name: ${{ matrix.build.name }}-darwin-universal
           path: build/bin/*.app
 
       # Upload artifacts - Windows
       - name: Upload Windows artifact
-        if: runner.os == 'Windows'
+        if: matrix.build.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: windows-build
+          name: ${{ matrix.build.name }}-windows-amd64
           path: build/bin/*.exe
 
-      # Optional: Create release assets
+      # Optional: Create release assets on tag/release
       - name: Upload to Release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             build/bin/*
