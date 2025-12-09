@@ -2,10 +2,6 @@
 name: Wails Build
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
   release:
     types: [ published ]
 
