@@ -15,8 +15,8 @@ A modern, cross-platform email client built with Wails, React, and TypeScript.
 
 ### Download and Install
 
-Currently, the application build only for windowds--
-[Download](https://github.com/yourusername/tempu-mail/releases)
+Users use fast way and easy way to download and install Tempu-Mail
+[Download](https://github.com/devgauravjatt/Tempu-Mail/releases)
 
 ## 🚀 Getting Started (For Developers)
 

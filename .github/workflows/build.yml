@@ -3,14 +3,14 @@ name: Wails Build
 
 on:
   release:
-    types: [ published ]
+    types: [published]
 
 # Add permissions for release uploads
 permissions:
   contents: write
-  
+
 env:
-  NODE_OPTIONS: "--max-old-space-size=4096"
+  NODE_OPTIONS: '--max-old-space-size=4096'
 
 jobs:
   build:
@@ -18,18 +18,18 @@ jobs:
       fail-fast: false
       matrix:
         build:
-          - name: 'App'
+          - name: 'Tempu-Mail'
             platform: 'linux/amd64'
             os: 'ubuntu-latest'
-          - name: 'App'
+          - name: 'Tempu-Mail'
             platform: 'windows/amd64'
             os: 'windows-latest'
-          - name: 'App'
+          - name: 'Tempu-Mail'
             platform: 'darwin/universal'
             os: 'macos-latest'
-    
+
     runs-on: ${{ matrix.build.os }}
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -130,7 +130,7 @@ jobs:
         run: |
           cd build/bin
           tar -czf ../../${{ matrix.build.name }}-linux-amd64.tar.gz *
-          
+
       - name: Package Windows artifact
         if: matrix.build.os == 'windows-latest' && github.event_name == 'release'
         shell: pwsh
