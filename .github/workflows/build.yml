@@ -40,7 +40,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.23'
           check-latest: true
           cache: true
 
@@ -82,13 +82,18 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: ./frontend
 
+      # Build frontend explicitly with pnpm
+      - name: Build frontend
+        run: pnpm run build
+        working-directory: ./frontend
+
       # Install Wails
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
       # Build the application
       - name: Build Wails app
-        run: wails build -clean -platform ${{ matrix.build.platform }}
+        run: wails build -clean -platform ${{ matrix.build.platform }} -skipbindings -s
 
       # Upload artifacts - Linux
       - name: Upload Linux artifact
